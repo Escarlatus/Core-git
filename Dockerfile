@@ -1,29 +1,27 @@
-# USAR LA IMAGEN DE MICROSOFT .NET 8 SDK
+# 1. IMAGEN BASE
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# COPIAR LOS ARCHIVOS DE PROYECTO (Ajusta si tienes otros proyectos referenciados)
-COPY ["Asilo.Core/Asilo.Core.csproj", "Asilo.Core/"]
-# Si tienes un proyecto de interfaces, descomenta la siguiente línea:
-# COPY ["Asilo.Core.Interfaces/Asilo.Core.Interfaces.csproj", "Asilo.Core.Interfaces/"]
+# --- CAMBIO IMPORTANTE AQUÍ ---
+# Como el csproj está en la raíz, lo copiamos directamente sin buscar carpetas extra
+COPY ["Asilo.Core.csproj", "./"]
+RUN dotnet restore "Asilo.Core.csproj"
 
-RUN dotnet restore "Asilo.Core/Asilo.Core.csproj"
-
-# COPIAR EL RESTO DEL CÓDIGO Y COMPILAR
+# Copiamos todo lo demás
 COPY . .
-WORKDIR "/src/Asilo.Core"
+WORKDIR "/src/."
 RUN dotnet build "Asilo.Core.csproj" -c Release -o /app/build
 
-# PUBLICAR LA APP
+# 2. PUBLICAR
 FROM build AS publish
 RUN dotnet publish "Asilo.Core.csproj" -c Release -o /app/publish
 
-# CONFIGURAR LA IMAGEN FINAL
+# 3. IMAGEN FINAL
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# ESTA LÍNEA ES CRÍTICA PARA RENDER (Usa el puerto dinámico)
+# PUERTO PARA RENDER
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
